@@ -1,6 +1,6 @@
 package com.qrcode.server;
 
-import com.qrcode.model.po.User;
+import com.qrcode.model.vo.UserDetailVo;
 import com.qrcode.model.vo.UserVo;
 
 public interface LoginService {
@@ -11,7 +11,7 @@ public interface LoginService {
 	 * @param userVo 前端傳入使用者資訊
 	 * @return
 	 */
-	User signIn(UserVo userVo);
+	UserDetailVo signIn(UserVo userVo);
 
 	/**
 	 * login 使用者登入
@@ -19,7 +19,7 @@ public interface LoginService {
 	 * @param userVo 前端傳入使用者資訊
 	 * @return
 	 */
-	User login(UserVo userVo);
+	UserDetailVo login(UserVo userVo);
 
 	/**
 	 * updateUserDetail 使用者資訊變更

@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.qrcode.model.ResponseResult;
 import com.qrcode.model.po.User;
+import com.qrcode.model.vo.UserDetailVo;
 import com.qrcode.model.vo.UserVo;
 import com.qrcode.server.EmailService;
 import com.qrcode.server.LoginService;
@@ -44,7 +45,7 @@ public class LoginController {
 	@Operation(summary = "註冊", description = "使用者註冊")
 	@ApiResponse(responseCode = "200", description = "註冊成功")
 	@ApiResponse(responseCode = "401", description = "註冊失敗")
-	public ResponseEntity<ResponseResult<User>> signIn(@RequestBody @Valid UserVo userVo) {
+	public ResponseEntity<ResponseResult<UserDetailVo>> signIn(@RequestBody @Valid UserVo userVo) {
 
 		return ResponseEntity.ok(ResponseResult.success(loginService.signIn(userVo)));
 
@@ -60,9 +61,9 @@ public class LoginController {
 	@Operation(summary = "登入", description = "使用者登入")
 	@ApiResponse(responseCode = "200", description = "登入成功")
 	@ApiResponse(responseCode = "401", description = "登入失敗")
-	public ResponseEntity<ResponseResult<User>> login(@RequestBody UserVo userVo) {
+	public ResponseEntity<ResponseResult<UserDetailVo>> login(@RequestBody UserVo userVo) {
 
-		User user = loginService.login(userVo);
+		UserDetailVo user = loginService.login(userVo);
 
 		if (Objects.isNull(user)) {
 			return ResponseEntity.ok(ResponseResult.error(401, "登入失敗"));

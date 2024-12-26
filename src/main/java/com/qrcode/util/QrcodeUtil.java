@@ -13,7 +13,8 @@ import com.google.zxing.BarcodeFormat;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
-import com.qrcode.model.po.Store;
+import com.qrcode.model.po.QrCode;
+import com.qrcode.repository.QrCodeRepository;
 import com.qrcode.repository.StoreRepository;
 
 @Component
@@ -25,20 +26,23 @@ public class QrcodeUtil {
 	@Autowired
 	private StoreRepository storeRepository;
 
+	@Autowired
+	private QrCodeRepository qrCodeRepository;
+
 	/**
 	 * generateQRCodeForStore 產生專屬qrcode
 	 * 
 	 * @return 專屬qrcode
 	 */
 	public String generateQRCodeForStore(Long storeSeq) {
-		// 取得所有商品最新一筆資訊
-		Optional<Store> seqOptional = storeRepository.findFirstByStoreSeqOrderBySeqDesc(storeSeq);
 
-		Long seq = (long) 1;
+		Optional<QrCode> qrCodeOptional = qrCodeRepository.findFirstByStoreSeqOrderBySeqDesc(storeSeq);
 
-		if (seqOptional.isPresent()) {
+		Long seq = (long) 0;
+
+		if (qrCodeOptional.isPresent()) {
 			// 取得最新seq
-			seq = seqOptional.get().getSeq() + 1;
+			seq = qrCodeOptional.get().getSeq() + 1;
 		}
 		// qrcode網址
 		String qrCodeUrl = baseUrl + "/qrcode/provider/" + storeSeq + "/" + seq;

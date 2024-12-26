@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -63,16 +64,28 @@ public class Store {
 	private String email;
 
 	/**
-	 * address 商店地址
+	 * postCode 郵遞區號
 	 */
-	@Column(name = "address")
-	private String address;
+    @NotBlank(message = "郵遞區號不能為空")
+    private String postCode;
+    
+	/**
+	 * city 縣市
+	 */
+	@NotBlank(message = "縣市不能為空")
+    private String city;
 
 	/**
-	 * businessHours 商店營業時間
+	 * district 鄉鎮區域
 	 */
-	@Column(name = "business_hours")
-	private String businessHours;
+    @NotBlank(message = "鄉鎮區域不能為空")  
+    private String district;
+
+	/**
+	 * streetAddress 詳細地址
+	 */
+    @NotBlank(message = "詳細地址不能為空")
+    private String streetAddress;
 
 	/**
 	 * logo 商店商標
@@ -85,12 +98,6 @@ public class Store {
 	 */
 	@Column(name = "seats")
 	private int seats;
-
-	/**
-	 * qrcode 商店qrcode
-	 */
-	@Column(name = "qrcode")
-	private String qrcode;
 
 	/**
 	 * createTime 建立時間

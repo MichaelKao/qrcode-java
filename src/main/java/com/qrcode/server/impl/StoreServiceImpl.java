@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,20 +21,29 @@ import org.springframework.core.io.UrlResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.qrcode.model.po.BusinessHour;
 import com.qrcode.model.po.Product;
+import com.qrcode.model.po.QrCode;
 import com.qrcode.model.po.Store;
+import com.qrcode.model.vo.BusinessHourVo;
 import com.qrcode.model.vo.ProductVo;
 import com.qrcode.model.vo.StoreAndProductVo;
 import com.qrcode.model.vo.StoreVo;
+import com.qrcode.repository.BusinessHourRepository;
 import com.qrcode.repository.ProductRepository;
+import com.qrcode.repository.QrCodeRepository;
 import com.qrcode.repository.StoreRepository;
 import com.qrcode.repository.UserRepository;
 import com.qrcode.server.StoreService;
 import com.qrcode.util.QrcodeUtil;
 
 @Service
+@Transactional
 public class StoreServiceImpl implements StoreService {
 
 	@Autowired
@@ -48,6 +58,15 @@ public class StoreServiceImpl implements StoreService {
 	@Autowired
 	private UserRepository userRepository;
 
+	@Autowired
+	private BusinessHourRepository businessHourRepository;
+
+	@Autowired
+	private QrCodeRepository qrCodeRepository;
+
+	@Autowired
+	private ObjectMapper objectMapper;
+
 	/**
 	 * createStore 創建商店
 	 * 
@@ -57,26 +76,42 @@ public class StoreServiceImpl implements StoreService {
 	@Override
 	public void createStore(StoreVo storeVo) throws Exception {
 
-		Long seq = storeVo.getStoreSeq();
-		
 		Long storeSeq = storeVo.getStoreSeq();
 
-		if (!checkUserExists(seq)) {
+		if (!checkUserExists(storeSeq)) {
 			throw new Exception();
 		}
 		// 儲存商店logo圖片
 		String logoPath = getLogoPath(storeVo);
 
 		int seats = storeVo.getSeats();
+		// 前端json字串轉換成物件
+		List<BusinessHourVo> businessHourVoList = convertToBusinessHours(storeVo.getBusinessHours());
+		// 寫入營業時間資料表
+		businessHourRepository.saveAll(businessHourVoList.stream().map(businessHourVo -> {
 
-		for (int i = 0; i < seats; i++) {
-			String filePath = qrcodeUtil.generateQRCodeForStore(storeSeq);
-			// 資料存入商店
-			storeRepository
-					.saveAndFlush(Store.builder().storeSeq(storeVo.getStoreSeq()).storeName(storeVo.getStoreName())
-							.description(storeVo.getDescription()).phone(storeVo.getPhone()).email(storeVo.getEmail())
-							.address(storeVo.getAddress()).businessHours(storeVo.getBusinessHours()).logo(logoPath)
-							.qrcode(filePath).createTime(LocalDateTime.now()).updateTime(LocalDateTime.now()).build());
+			BusinessHour businessHour = new BusinessHour();
+
+			BeanUtils.copyProperties(businessHourVo, businessHour);
+
+			return BusinessHour.builder().storeSeq(storeSeq).isOpen(businessHour.isOpen()).week(businessHour.getWeek())
+					.openTime(businessHour.getOpenTime()).closeTime(businessHour.getCloseTime()).build();
+
+		}).toList());
+		// 資料存入商店
+		storeRepository.saveAndFlush(Store.builder().storeSeq(storeSeq).storeName(storeVo.getStoreName())
+				.description(storeVo.getDescription()).phone(storeVo.getPhone()).email(storeVo.getEmail())
+				.logo(logoPath).postCode(storeVo.getPostCode()).city(storeVo.getCity()).district(storeVo.getDistrict())
+				.streetAddress(storeVo.getStreetAddress()).createTime(LocalDateTime.now())
+				.updateTime(LocalDateTime.now()).build());
+
+		// 依照座位號產生qrcode 第0個是店家所用
+		for (int i = 0; i < seats + 1; i++) {
+			String qrcodePath = qrcodeUtil.generateQRCodeForStore(storeSeq);
+
+			qrCodeRepository.save(QrCode.builder().storeSeq(storeSeq).qrcode(qrcodePath).num(i)
+					.createTime(LocalDateTime.now()).updateTime(LocalDateTime.now()).build());
+
 		}
 
 	}
@@ -120,9 +155,9 @@ public class StoreServiceImpl implements StoreService {
 			// 商店信箱
 			store.setEmail(storeVo.getEmail());
 			// 商店地址
-			store.setAddress(storeVo.getAddress());
-			// 商店營業時間
-			store.setBusinessHours(storeVo.getBusinessHours());
+//			store.setAddress(storeVo.getAddress());
+//			// 商店營業時間
+//			store.setBusinessHours(storeVo.getBusinessHours());
 			// 商店商標
 			store.setLogo(logoPath);
 			// 修改時間
@@ -142,23 +177,24 @@ public class StoreServiceImpl implements StoreService {
 	 */
 	@Override
 	public ResponseEntity<Resource> getStoreQRCode(Long seq) throws MalformedURLException {
-		// 以商店資訊序號取得商店資訊
-		Optional<Store> storeOptional = storeRepository.findById(seq);
-
-		if (storeOptional.isEmpty() || storeOptional.get().getQrcode() == null) {
-
-			return ResponseEntity.notFound().build();
-
-		} else {
-
-			Store store = storeOptional.get();
-
-			// 讀取文件
-			Path path = Paths.get(store.getQrcode());
-			Resource resource = new UrlResource(path.toUri());
-
-			return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(resource);
-		}
+		return null;
+//		// 以商店資訊序號取得商店資訊
+//		Optional<Store> storeOptional = storeRepository.findById(seq);
+//
+//		if (storeOptional.isEmpty() || storeOptional.get().getQrcode() == null) {
+//
+//			return ResponseEntity.notFound().build();
+//
+//		} else {
+//
+//			Store store = storeOptional.get();
+//
+//			// 讀取文件
+//			Path path = Paths.get(store.getQrcode());
+//			Resource resource = new UrlResource(path.toUri());
+//
+//			return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(resource);
+//		}
 	}
 
 	/**
@@ -169,23 +205,24 @@ public class StoreServiceImpl implements StoreService {
 	 */
 	@Override
 	public ResponseEntity<Resource> getStoreLogo(Long seq) throws MalformedURLException {
-		// 以商店資訊序號取得商店資訊
-		Optional<Store> storeOptional = storeRepository.findById(seq);
-
-		if (storeOptional.isEmpty() || storeOptional.get().getQrcode() == null) {
-
-			return ResponseEntity.notFound().build();
-
-		} else {
-
-			Store store = storeOptional.get();
-
-			// 讀取文件
-			Path path = Paths.get(store.getLogo());
-			Resource resource = new UrlResource(path.toUri());
-
-			return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(resource);
-		}
+		return null;
+//		// 以商店資訊序號取得商店資訊
+//		Optional<Store> storeOptional = storeRepository.findById(seq);
+//
+//		if (storeOptional.isEmpty() || storeOptional.get().getQrcode() == null) {
+//
+//			return ResponseEntity.notFound().build();
+//
+//		} else {
+//
+//			Store store = storeOptional.get();
+//
+//			// 讀取文件
+//			Path path = Paths.get(store.getLogo());
+//			Resource resource = new UrlResource(path.toUri());
+//
+//			return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(resource);
+//		}
 	}
 
 	/**
@@ -318,9 +355,9 @@ public class StoreServiceImpl implements StoreService {
 		// 處理圖片上傳
 		String logoPath = null;
 
-		if (!storeVo.getLogo().get().isEmpty()) {
+		if (Objects.nonNull(storeVo.getLogo())) {
 			// 生成檔案名稱
-			String originalFilename = storeVo.getLogo().get().getOriginalFilename();
+			String originalFilename = storeVo.getLogo().getOriginalFilename();
 			String fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
 			String newFileName = UUID.randomUUID().toString() + fileExtension;
 			// 儲存路徑
@@ -330,12 +367,24 @@ public class StoreServiceImpl implements StoreService {
 			}
 			// 儲存檔案
 			Path filePath = uploadPath.resolve(newFileName);
-			Files.copy(storeVo.getLogo().get().getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+			Files.copy(storeVo.getLogo().getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
 			logoPath = filePath.toString();
 		}
 
 		return logoPath;
+	}
+
+	private List<BusinessHourVo> convertToBusinessHours(String businessHoursJson) {
+		try {
+
+			return objectMapper.readValue(businessHoursJson, new TypeReference<List<BusinessHourVo>>() {
+			});
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
 	}
 
 }
