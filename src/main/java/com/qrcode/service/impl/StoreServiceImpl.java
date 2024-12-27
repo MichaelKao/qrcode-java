@@ -1,4 +1,4 @@
-package com.qrcode.server.impl;
+package com.qrcode.service.impl;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -43,8 +43,8 @@ import com.qrcode.repository.ProductRepository;
 import com.qrcode.repository.QrCodeRepository;
 import com.qrcode.repository.StoreRepository;
 import com.qrcode.repository.UserRepository;
-import com.qrcode.server.LoginService;
-import com.qrcode.server.StoreService;
+import com.qrcode.service.LoginService;
+import com.qrcode.service.StoreService;
 import com.qrcode.util.QrcodeUtil;
 
 @Service
@@ -121,7 +121,7 @@ public class StoreServiceImpl implements StoreService {
 
 		}
 
-		return loginService.getUserDetailBySeq(savedStore.getSeq());
+		return loginService.getUserDetailBySeq(storeSeq);
 
 	}
 

@@ -1,4 +1,4 @@
-package com.qrcode.server.impl;
+package com.qrcode.service.impl;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -29,7 +29,7 @@ import com.qrcode.repository.ProductRepository;
 import com.qrcode.repository.QrCodeRepository;
 import com.qrcode.repository.StoreRepository;
 import com.qrcode.repository.UserRepository;
-import com.qrcode.server.LoginService;
+import com.qrcode.service.LoginService;
 import com.qrcode.util.VerificationCodeUtil;
 
 @Service

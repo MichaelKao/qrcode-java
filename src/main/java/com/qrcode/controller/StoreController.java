@@ -24,7 +24,7 @@ import com.qrcode.model.vo.ProductVo;
 import com.qrcode.model.vo.StoreAndProductVo;
 import com.qrcode.model.vo.StoreVo;
 import com.qrcode.model.vo.UserDetailVo;
-import com.qrcode.server.StoreService;
+import com.qrcode.service.StoreService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;

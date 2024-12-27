@@ -1,4 +1,4 @@
-package com.qrcode.server.impl;
+package com.qrcode.service.impl;
 
 import java.util.Optional;
 
@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 
 import com.qrcode.model.po.User;
 import com.qrcode.repository.UserRepository;
-import com.qrcode.server.EmailService;
+import com.qrcode.service.EmailService;
 import com.qrcode.util.VerificationCodeUtil;
 
 import jakarta.mail.MessagingException;

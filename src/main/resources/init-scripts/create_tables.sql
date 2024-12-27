@@ -27,7 +27,6 @@ COMMENT ON COLUMN "user_t".email IS '電子信箱';
 COMMENT ON COLUMN "user_t".createtime IS '建立時間';
 COMMENT ON COLUMN "user_t".updateTime IS '修改時間';
 
-
 CREATE SEQUENCE IF NOT EXISTS verification_code_seq
 START WITH 1
 INCREMENT BY 1
@@ -147,4 +146,3 @@ COMMENT ON COLUMN "qrcode_t".qrcode IS 'QR Code 字串';
 COMMENT ON COLUMN "qrcode_t".num IS '位子';
 COMMENT ON COLUMN "qrcode_t".create_time IS '建立時間';
 COMMENT ON COLUMN "qrcode_t".update_time IS '修改時間';
-

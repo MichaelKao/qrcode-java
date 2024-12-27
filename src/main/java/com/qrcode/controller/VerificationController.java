@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.qrcode.model.ResponseResult;
 import com.qrcode.model.vo.VerificationVo;
-import com.qrcode.server.EmailService;
+import com.qrcode.service.EmailService;
 import com.qrcode.util.VerificationCodeUtil;
 
 import io.swagger.v3.oas.annotations.Operation;

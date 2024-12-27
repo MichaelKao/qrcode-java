@@ -1,4 +1,4 @@
-package com.qrcode.server;
+package com.qrcode.service;
 
 import jakarta.mail.MessagingException;
 

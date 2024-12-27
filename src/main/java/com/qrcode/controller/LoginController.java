@@ -17,8 +17,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.qrcode.model.ResponseResult;
 import com.qrcode.model.vo.UserDetailVo;
 import com.qrcode.model.vo.UserVo;
-import com.qrcode.server.EmailService;
-import com.qrcode.server.LoginService;
+import com.qrcode.service.EmailService;
+import com.qrcode.service.LoginService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
