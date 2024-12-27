@@ -27,5 +27,7 @@ public interface LoginService {
 	 * @param userVo 前端傳入使用者資訊
 	 */
 	boolean updateUserDetail(UserVo userVo);
+	
+	UserDetailVo getUserDetailBySeq(Long seq)  throws Exception;
 
 }

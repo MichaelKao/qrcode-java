@@ -15,16 +15,12 @@ import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
 import com.qrcode.model.po.QrCode;
 import com.qrcode.repository.QrCodeRepository;
-import com.qrcode.repository.StoreRepository;
 
 @Component
 public class QrcodeUtil {
 
 	@Value("${app.base-url}")
 	private String baseUrl;
-
-	@Autowired
-	private StoreRepository storeRepository;
 
 	@Autowired
 	private QrCodeRepository qrCodeRepository;

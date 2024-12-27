@@ -17,6 +17,6 @@ public interface BusinessHourRepository extends JpaRepository<BusinessHour, Long
 	 * @param storeSeq 商店序號
 	 * @return 商店營業時間
 	 */
-	List<Product> findByStoreSeq(Long storeSeq);
+	List<BusinessHour> findByStoreSeq(Long storeSeq);
 
 }

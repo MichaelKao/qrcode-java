@@ -7,12 +7,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +28,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.qrcode.model.QrCodeResponse;
 import com.qrcode.model.po.BusinessHour;
 import com.qrcode.model.po.Product;
 import com.qrcode.model.po.QrCode;
@@ -34,11 +37,13 @@ import com.qrcode.model.vo.BusinessHourVo;
 import com.qrcode.model.vo.ProductVo;
 import com.qrcode.model.vo.StoreAndProductVo;
 import com.qrcode.model.vo.StoreVo;
+import com.qrcode.model.vo.UserDetailVo;
 import com.qrcode.repository.BusinessHourRepository;
 import com.qrcode.repository.ProductRepository;
 import com.qrcode.repository.QrCodeRepository;
 import com.qrcode.repository.StoreRepository;
 import com.qrcode.repository.UserRepository;
+import com.qrcode.server.LoginService;
 import com.qrcode.server.StoreService;
 import com.qrcode.util.QrcodeUtil;
 
@@ -67,6 +72,9 @@ public class StoreServiceImpl implements StoreService {
 	@Autowired
 	private ObjectMapper objectMapper;
 
+	@Autowired
+	private LoginService loginService;
+
 	/**
 	 * createStore 創建商店
 	 * 
@@ -74,7 +82,7 @@ public class StoreServiceImpl implements StoreService {
 	 * @throws Exception
 	 */
 	@Override
-	public void createStore(StoreVo storeVo) throws Exception {
+	public UserDetailVo createStore(StoreVo storeVo) throws Exception {
 
 		Long storeSeq = storeVo.getStoreSeq();
 
@@ -88,7 +96,7 @@ public class StoreServiceImpl implements StoreService {
 		// 前端json字串轉換成物件
 		List<BusinessHourVo> businessHourVoList = convertToBusinessHours(storeVo.getBusinessHours());
 		// 寫入營業時間資料表
-		businessHourRepository.saveAll(businessHourVoList.stream().map(businessHourVo -> {
+		businessHourRepository.saveAllAndFlush(businessHourVoList.stream().map(businessHourVo -> {
 
 			BusinessHour businessHour = new BusinessHour();
 
@@ -109,10 +117,12 @@ public class StoreServiceImpl implements StoreService {
 		for (int i = 0; i < seats + 1; i++) {
 			String qrcodePath = qrcodeUtil.generateQRCodeForStore(storeSeq);
 
-			qrCodeRepository.save(QrCode.builder().storeSeq(storeSeq).qrcode(qrcodePath).num(i)
+			qrCodeRepository.saveAndFlush(QrCode.builder().storeSeq(storeSeq).qrcode(qrcodePath).num(i)
 					.createTime(LocalDateTime.now()).updateTime(LocalDateTime.now()).build());
 
 		}
+
+		return loginService.getUserDetailBySeq(storeSeq);
 
 	}
 
@@ -176,25 +186,36 @@ public class StoreServiceImpl implements StoreService {
 	 * @throws MalformedURLException
 	 */
 	@Override
-	public ResponseEntity<Resource> getStoreQRCode(Long seq) throws MalformedURLException {
-		return null;
-//		// 以商店資訊序號取得商店資訊
-//		Optional<Store> storeOptional = storeRepository.findById(seq);
-//
-//		if (storeOptional.isEmpty() || storeOptional.get().getQrcode() == null) {
-//
-//			return ResponseEntity.notFound().build();
-//
-//		} else {
-//
-//			Store store = storeOptional.get();
-//
-//			// 讀取文件
-//			Path path = Paths.get(store.getQrcode());
-//			Resource resource = new UrlResource(path.toUri());
-//
-//			return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(resource);
-//		}
+	public ResponseEntity<List<QrCodeResponse>> getStoreQRCode(Long seq) throws MalformedURLException {
+		// 以商店序號查詢QrCode
+		List<QrCode> qrCodeList = qrCodeRepository.findByStoreSeq(seq);
+
+		if (qrCodeList.isEmpty()) {
+
+			return ResponseEntity.notFound().build();
+
+		} 
+		
+		// 將每個 QR code 轉換成回應物件
+	    List<QrCodeResponse> responses = qrCodeList.stream()
+	        .map(qrCode -> {
+	            try {
+	                Path path = Paths.get(qrCode.getQrcode());
+	                // 將圖片轉成 Base64 字串
+	                byte[] imageBytes = Files.readAllBytes(path);
+	                String base64Image = Base64.getEncoder().encodeToString(imageBytes);
+	                
+	                return new QrCodeResponse(
+	                    qrCode.getNum(),
+	                    base64Image
+	                );
+	            } catch (IOException e) {
+	                throw new RuntimeException("Error reading QR code image", e);
+	            }
+	        })
+	        .collect(Collectors.toList());
+
+	    return ResponseEntity.ok(responses);
 	}
 
 	/**

@@ -8,10 +8,12 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.qrcode.model.QrCodeResponse;
 import com.qrcode.model.po.Store;
 import com.qrcode.model.vo.ProductVo;
 import com.qrcode.model.vo.StoreAndProductVo;
 import com.qrcode.model.vo.StoreVo;
+import com.qrcode.model.vo.UserDetailVo;
 
 public interface StoreService {
 
@@ -21,7 +23,7 @@ public interface StoreService {
 	 * @param storeVo 商店資訊
 	 * @throws Exception
 	 */
-	void createStore(StoreVo storeVo) throws Exception;
+	UserDetailVo createStore(StoreVo storeVo) throws Exception;
 
 	Store viewStore(Long seq);
 
@@ -39,7 +41,7 @@ public interface StoreService {
 	 * @param seq 商店資訊序號
 	 * @return qrcode
 	 */
-	ResponseEntity<Resource> getStoreQRCode(Long seq) throws MalformedURLException;
+	ResponseEntity<List<QrCodeResponse>> getStoreQRCode(Long seq) throws MalformedURLException;
 
 	/**
 	 * getStoreLogo 獲取logo

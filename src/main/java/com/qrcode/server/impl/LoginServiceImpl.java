@@ -150,6 +150,10 @@ public class LoginServiceImpl implements LoginService {
 				userStoreVo.setBusinessHoursList(businessHourVoList);
 				userStoreVo.setUserProductVoList(userProductVoList);
 				userStoreVo.setQrCodeVoList(qrCodeVoList);
+				
+				result.setUserStoreVo(userStoreVo);
+
+				return result;
 
 			} else {
 				return result;
@@ -191,6 +195,64 @@ public class LoginServiceImpl implements LoginService {
 			return false;
 		}
 
+	}
+
+	@Override
+	public UserDetailVo getUserDetailBySeq(Long seq) throws Exception {
+
+		User user = userRepository.findById(seq).orElseThrow(() -> new Exception());
+
+		UserDetailVo result = new UserDetailVo();
+		// 使用者序號
+		result.setSeq(user.getSeq());
+		// 帳號
+		result.setAccount(user.getAccount());
+		// 密碼
+		result.setPassword(user.getPassword());
+		// 電子信箱
+		result.setEmail(user.getEmail());
+
+		Optional<Store> storeOptional = storeRepository.findByStoreSeq(user.getSeq()).stream().findFirst();
+
+		if (storeOptional.isPresent()) {
+
+			Store store = storeOptional.get();
+
+			UserStoreVo userStoreVo = new UserStoreVo();
+
+			BeanUtils.copyProperties(store, userStoreVo);
+
+			List<BusinessHourVo> businessHourVoList = businessHourRepository.findByStoreSeq(store.getSeq()).stream()
+					.map(businessHour -> {
+						BusinessHourVo businessHourVo = new BusinessHourVo();
+						BeanUtils.copyProperties(businessHour, businessHourVo);
+						return businessHourVo;
+					}).toList();
+
+			List<UserProductVo> userProductVoList = productRepository.findByProductSeq(store.getSeq()).stream()
+					.map(product -> {
+						UserProductVo productVo = new UserProductVo();
+						BeanUtils.copyProperties(product, productVo);
+						return productVo;
+					}).toList();
+
+			List<QrCodeVo> qrCodeVoList = qrCodeRepository.findByStoreSeq(store.getSeq()).stream().map(qrCode -> {
+				QrCodeVo qrCodeVo = new QrCodeVo();
+				BeanUtils.copyProperties(qrCode, qrCodeVo);
+				return qrCodeVo;
+			}).toList();
+
+			userStoreVo.setBusinessHoursList(businessHourVoList);
+			userStoreVo.setUserProductVoList(userProductVoList);
+			userStoreVo.setQrCodeVoList(qrCodeVoList);
+			
+			result.setUserStoreVo(userStoreVo);
+
+			return result;
+
+		}
+
+		return null;
 	}
 
 }

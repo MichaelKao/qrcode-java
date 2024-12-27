@@ -17,11 +17,13 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.qrcode.model.QrCodeResponse;
 import com.qrcode.model.ResponseResult;
 import com.qrcode.model.po.Store;
 import com.qrcode.model.vo.ProductVo;
 import com.qrcode.model.vo.StoreAndProductVo;
 import com.qrcode.model.vo.StoreVo;
+import com.qrcode.model.vo.UserDetailVo;
 import com.qrcode.server.StoreService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -46,11 +48,11 @@ public class StoreController {
 	@PostMapping(value = "/createStore", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@Operation(summary = "創建商店", description = "創建商店")
 	@ApiResponse(responseCode = "200", description = "OK")
-	public ResponseEntity<ResponseResult<String>> createStore(@ModelAttribute @Valid StoreVo storeVo) throws Exception {
-		// 創建商店
-		storeService.createStore(storeVo);
+	public ResponseEntity<ResponseResult<UserDetailVo>> createStore(@ModelAttribute @Valid StoreVo storeVo)
+			throws Exception {
 
-		return ResponseEntity.ok(ResponseResult.success(""));
+		// 創建商店
+		return ResponseEntity.ok(ResponseResult.success(storeService.createStore(storeVo)));
 	}
 
 	/**
@@ -96,7 +98,7 @@ public class StoreController {
 	 */
 	@GetMapping("/getStoreQRCode/{seq}")
 	@Operation(summary = "獲取qrcode", description = "獲取qrcode")
-	public ResponseEntity<Resource> getStoreQRCode(@PathVariable Long seq) throws IOException {
+	public ResponseEntity<List<QrCodeResponse>> getStoreQRCode(@PathVariable Long seq) throws IOException {
 
 		return storeService.getStoreQRCode(seq);
 	}
