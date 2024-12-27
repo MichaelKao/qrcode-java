@@ -93,6 +93,12 @@ public class StoreServiceImpl implements StoreService {
 		String logoPath = getLogoPath(storeVo);
 
 		int seats = storeVo.getSeats();
+		// 資料存入商店
+		Store savedStore = storeRepository.saveAndFlush(Store.builder().storeSeq(storeSeq)
+				.storeName(storeVo.getStoreName()).description(storeVo.getDescription()).phone(storeVo.getPhone())
+				.email(storeVo.getEmail()).logo(logoPath).postCode(storeVo.getPostCode()).city(storeVo.getCity())
+				.district(storeVo.getDistrict()).streetAddress(storeVo.getStreetAddress())
+				.createTime(LocalDateTime.now()).updateTime(LocalDateTime.now()).build());
 		// 前端json字串轉換成物件
 		List<BusinessHourVo> businessHourVoList = convertToBusinessHours(storeVo.getBusinessHours());
 		// 寫入營業時間資料表
@@ -102,27 +108,20 @@ public class StoreServiceImpl implements StoreService {
 
 			BeanUtils.copyProperties(businessHourVo, businessHour);
 
-			return BusinessHour.builder().storeSeq(storeSeq).isOpen(businessHour.isOpen()).week(businessHour.getWeek())
+			return BusinessHour.builder().storeSeq(savedStore.getSeq()).isOpen(businessHour.isOpen()).week(businessHour.getWeek())
 					.openTime(businessHour.getOpenTime()).closeTime(businessHour.getCloseTime()).build();
 
 		}).toList());
-		// 資料存入商店
-		storeRepository.saveAndFlush(Store.builder().storeSeq(storeSeq).storeName(storeVo.getStoreName())
-				.description(storeVo.getDescription()).phone(storeVo.getPhone()).email(storeVo.getEmail())
-				.logo(logoPath).postCode(storeVo.getPostCode()).city(storeVo.getCity()).district(storeVo.getDistrict())
-				.streetAddress(storeVo.getStreetAddress()).createTime(LocalDateTime.now())
-				.updateTime(LocalDateTime.now()).build());
-
 		// 依照座位號產生qrcode 第0個是店家所用
 		for (int i = 0; i < seats + 1; i++) {
-			String qrcodePath = qrcodeUtil.generateQRCodeForStore(storeSeq);
+			String qrcodePath = qrcodeUtil.generateQRCodeForStore(savedStore.getSeq());
 
-			qrCodeRepository.saveAndFlush(QrCode.builder().storeSeq(storeSeq).qrcode(qrcodePath).num(i)
+			qrCodeRepository.saveAndFlush(QrCode.builder().storeSeq(savedStore.getSeq()).qrcode(qrcodePath).num(i)
 					.createTime(LocalDateTime.now()).updateTime(LocalDateTime.now()).build());
 
 		}
 
-		return loginService.getUserDetailBySeq(storeSeq);
+		return loginService.getUserDetailBySeq(savedStore.getSeq());
 
 	}
 
@@ -176,74 +175,6 @@ public class StoreServiceImpl implements StoreService {
 			storeRepository.save(store);
 		}
 
-	}
-
-	/**
-	 * getStoreQRCode 獲取qrcode
-	 * 
-	 * @param seq 商店資訊序號
-	 * @return qrcode
-	 * @throws MalformedURLException
-	 */
-	@Override
-	public ResponseEntity<List<QrCodeResponse>> getStoreQRCode(Long seq) throws MalformedURLException {
-		// 以商店序號查詢QrCode
-		List<QrCode> qrCodeList = qrCodeRepository.findByStoreSeq(seq);
-
-		if (qrCodeList.isEmpty()) {
-
-			return ResponseEntity.notFound().build();
-
-		} 
-		
-		// 將每個 QR code 轉換成回應物件
-	    List<QrCodeResponse> responses = qrCodeList.stream()
-	        .map(qrCode -> {
-	            try {
-	                Path path = Paths.get(qrCode.getQrcode());
-	                // 將圖片轉成 Base64 字串
-	                byte[] imageBytes = Files.readAllBytes(path);
-	                String base64Image = Base64.getEncoder().encodeToString(imageBytes);
-	                
-	                return new QrCodeResponse(
-	                    qrCode.getNum(),
-	                    base64Image
-	                );
-	            } catch (IOException e) {
-	                throw new RuntimeException("Error reading QR code image", e);
-	            }
-	        })
-	        .collect(Collectors.toList());
-
-	    return ResponseEntity.ok(responses);
-	}
-
-	/**
-	 * getStoreLogo 獲取logo
-	 * 
-	 * @param seq 商店資訊序號
-	 * @return logo
-	 */
-	@Override
-	public ResponseEntity<Resource> getStoreLogo(Long seq) throws MalformedURLException {
-		return null;
-//		// 以商店資訊序號取得商店資訊
-//		Optional<Store> storeOptional = storeRepository.findById(seq);
-//
-//		if (storeOptional.isEmpty() || storeOptional.get().getQrcode() == null) {
-//
-//			return ResponseEntity.notFound().build();
-//
-//		} else {
-//
-//			Store store = storeOptional.get();
-//
-//			// 讀取文件
-//			Path path = Paths.get(store.getLogo());
-//			Resource resource = new UrlResource(path.toUri());
-//
-//			return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(resource);
-//		}
 	}
 
 	/**

@@ -90,34 +90,6 @@ public class StoreController {
 	}
 
 	/**
-	 * getStoreQRCode 獲取qrcode
-	 * 
-	 * @param seq 商店資訊序號
-	 * @return qrcode
-	 * @throws IOException
-	 */
-	@GetMapping("/getStoreQRCode/{seq}")
-	@Operation(summary = "獲取qrcode", description = "獲取qrcode")
-	public ResponseEntity<List<QrCodeResponse>> getStoreQRCode(@PathVariable Long seq) throws IOException {
-
-		return storeService.getStoreQRCode(seq);
-	}
-
-	/**
-	 * getStoreLogo 獲取logo
-	 * 
-	 * @param seq 商店資訊序號
-	 * @return logo
-	 * @throws IOException
-	 */
-	@GetMapping("/getStoreLogo/{seq}")
-	@Operation(summary = "獲取logo", description = "獲取logo")
-	public ResponseEntity<Resource> getStoreLogo(@PathVariable Long seq) throws IOException {
-
-		return storeService.getStoreLogo(seq);
-	}
-
-	/**
 	 * getProductLogo 獲取商品圖片
 	 * 
 	 * @param seq 商店資訊序號

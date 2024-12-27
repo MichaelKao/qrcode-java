@@ -1,9 +1,15 @@
 package com.qrcode.server.impl;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -91,9 +97,10 @@ public class LoginServiceImpl implements LoginService {
 	 * 
 	 * @param userVo 前端傳入使用者資訊
 	 * @return
+	 * @throws IOException
 	 */
 	@Override
-	public UserDetailVo login(UserVo userVo) {
+	public UserDetailVo login(UserVo userVo) throws IOException {
 		// 帳號
 		String account = userVo.getAccount();
 		// 密碼
@@ -126,31 +133,48 @@ public class LoginServiceImpl implements LoginService {
 				UserStoreVo userStoreVo = new UserStoreVo();
 
 				BeanUtils.copyProperties(store, userStoreVo);
+				// 把檔案轉換成base64
+				String base64Logo = convertBase64(store.getLogo());
 
+				userStoreVo.setLogo(base64Logo);
+				// 取得營業時間
 				List<BusinessHourVo> businessHourVoList = businessHourRepository.findByStoreSeq(store.getSeq()).stream()
 						.map(businessHour -> {
 							BusinessHourVo businessHourVo = new BusinessHourVo();
 							BeanUtils.copyProperties(businessHour, businessHourVo);
 							return businessHourVo;
 						}).toList();
-
+				// 取得商品資訊
 				List<UserProductVo> userProductVoList = productRepository.findByProductSeq(store.getSeq()).stream()
 						.map(product -> {
 							UserProductVo productVo = new UserProductVo();
 							BeanUtils.copyProperties(product, productVo);
 							return productVo;
 						}).toList();
-
+				// 取得店家qrcode清單
 				List<QrCodeVo> qrCodeVoList = qrCodeRepository.findByStoreSeq(store.getSeq()).stream().map(qrCode -> {
 					QrCodeVo qrCodeVo = new QrCodeVo();
+
+					String base64Qrcode = "";
+
+					try {
+						// 把檔案轉換成base64
+						base64Qrcode = convertBase64(qrCode.getQrcode());
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+
 					BeanUtils.copyProperties(qrCode, qrCodeVo);
+
+					qrCodeVo.setQrcode(base64Qrcode);
+
 					return qrCodeVo;
 				}).toList();
 
 				userStoreVo.setBusinessHoursList(businessHourVoList);
 				userStoreVo.setUserProductVoList(userProductVoList);
 				userStoreVo.setQrCodeVoList(qrCodeVoList);
-				
+
 				result.setUserStoreVo(userStoreVo);
 
 				return result;
@@ -221,31 +245,48 @@ public class LoginServiceImpl implements LoginService {
 			UserStoreVo userStoreVo = new UserStoreVo();
 
 			BeanUtils.copyProperties(store, userStoreVo);
+			// 把檔案轉換成base64
+			String base64Logo = convertBase64(store.getLogo());
 
+			userStoreVo.setLogo(base64Logo);
+			// 取得營業時間
 			List<BusinessHourVo> businessHourVoList = businessHourRepository.findByStoreSeq(store.getSeq()).stream()
 					.map(businessHour -> {
 						BusinessHourVo businessHourVo = new BusinessHourVo();
 						BeanUtils.copyProperties(businessHour, businessHourVo);
 						return businessHourVo;
 					}).toList();
-
+			// 取得商品資訊
 			List<UserProductVo> userProductVoList = productRepository.findByProductSeq(store.getSeq()).stream()
 					.map(product -> {
 						UserProductVo productVo = new UserProductVo();
 						BeanUtils.copyProperties(product, productVo);
 						return productVo;
 					}).toList();
-
+			// 取得店家qrcode清單
 			List<QrCodeVo> qrCodeVoList = qrCodeRepository.findByStoreSeq(store.getSeq()).stream().map(qrCode -> {
 				QrCodeVo qrCodeVo = new QrCodeVo();
+
+				String base64Qrcode = "";
+
+				try {
+					// 把檔案轉換成base64
+					base64Qrcode = convertBase64(qrCode.getQrcode());
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+
 				BeanUtils.copyProperties(qrCode, qrCodeVo);
+
+				qrCodeVo.setQrcode(base64Qrcode);
+
 				return qrCodeVo;
 			}).toList();
 
 			userStoreVo.setBusinessHoursList(businessHourVoList);
 			userStoreVo.setUserProductVoList(userProductVoList);
 			userStoreVo.setQrCodeVoList(qrCodeVoList);
-			
+
 			result.setUserStoreVo(userStoreVo);
 
 			return result;
@@ -253,6 +294,29 @@ public class LoginServiceImpl implements LoginService {
 		}
 
 		return null;
+	}
+
+	/**
+	 * convertBase64 把檔案轉換成base64
+	 * 
+	 * @param filePath 檔案路徑
+	 * @return base64
+	 * @throws IOException
+	 */
+	private String convertBase64(String filePath) throws IOException {
+
+		if (StringUtils.isBlank(filePath)) {
+			return "";
+		}
+
+		Path path = Paths.get(filePath);
+
+		byte[] imageBytes;
+
+		imageBytes = Files.readAllBytes(path);
+
+		return Base64.getEncoder().encodeToString(imageBytes);
+
 	}
 
 }

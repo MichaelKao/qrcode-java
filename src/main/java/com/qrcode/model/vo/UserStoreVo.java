@@ -3,6 +3,7 @@ package com.qrcode.model.vo;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -45,9 +46,24 @@ public class UserStoreVo {
 	private String email;
 
 	/**
-	 * address 商店地址
+	 * postCode 郵遞區號
 	 */
-	private String address;
+    private String postCode;
+    
+	/**
+	 * city 縣市
+	 */
+    private String city;
+
+	/**
+	 * district 鄉鎮區域
+	 */
+    private String district;
+
+	/**
+	 * streetAddress 詳細地址
+	 */
+    private String streetAddress;
 
 	/**
 	 * businessHours 商店營業時間

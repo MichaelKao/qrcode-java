@@ -36,22 +36,6 @@ public interface StoreService {
 	void updateStore(StoreVo storeVo) throws IOException;
 
 	/**
-	 * getStoreQRCode 獲取qrcode
-	 * 
-	 * @param seq 商店資訊序號
-	 * @return qrcode
-	 */
-	ResponseEntity<List<QrCodeResponse>> getStoreQRCode(Long seq) throws MalformedURLException;
-
-	/**
-	 * getStoreLogo 獲取logo
-	 * 
-	 * @param seq 商店資訊序號
-	 * @return logo
-	 */
-	ResponseEntity<Resource> getStoreLogo(Long seq) throws MalformedURLException;
-
-	/**
 	 * getProductLogo 獲取商品圖片
 	 * 
 	 * @param seq 商品資訊序號

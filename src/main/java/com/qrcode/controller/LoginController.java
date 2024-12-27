@@ -1,5 +1,6 @@
 package com.qrcode.controller;
 
+import java.io.IOException;
 import java.util.Objects;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.qrcode.model.ResponseResult;
-import com.qrcode.model.po.User;
 import com.qrcode.model.vo.UserDetailVo;
 import com.qrcode.model.vo.UserVo;
 import com.qrcode.server.EmailService;
@@ -47,6 +47,12 @@ public class LoginController {
 	@ApiResponse(responseCode = "401", description = "註冊失敗")
 	public ResponseEntity<ResponseResult<UserDetailVo>> signIn(@RequestBody @Valid UserVo userVo) {
 
+		UserDetailVo result = loginService.signIn(userVo);
+
+		if (Objects.isNull(result)) {
+			return ResponseEntity.ok(ResponseResult.error(401, "帳號重複"));
+		}
+
 		return ResponseEntity.ok(ResponseResult.success(loginService.signIn(userVo)));
 
 	}
@@ -56,12 +62,13 @@ public class LoginController {
 	 * 
 	 * @param userVo 前端傳入使用者資訊
 	 * @return 登入結果
+	 * @throws IOException
 	 */
 	@PostMapping(value = "/login", produces = MediaType.APPLICATION_JSON_VALUE)
 	@Operation(summary = "登入", description = "使用者登入")
 	@ApiResponse(responseCode = "200", description = "登入成功")
 	@ApiResponse(responseCode = "401", description = "登入失敗")
-	public ResponseEntity<ResponseResult<UserDetailVo>> login(@RequestBody UserVo userVo) {
+	public ResponseEntity<ResponseResult<UserDetailVo>> login(@RequestBody UserVo userVo) throws IOException {
 
 		UserDetailVo user = loginService.login(userVo);
 

@@ -33,7 +33,7 @@ public class QrCode {
 	private Long seq;
 
 	/**
-	 * userSeq 商店序號 關聯user_t.seq
+	 * userSeq 商店序號 關聯store_t.seq
 	 */
 	@Column(name = "store_seq")
 	private Long storeSeq;

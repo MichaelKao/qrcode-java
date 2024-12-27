@@ -1,5 +1,7 @@
 package com.qrcode.server;
 
+import java.io.IOException;
+
 import com.qrcode.model.vo.UserDetailVo;
 import com.qrcode.model.vo.UserVo;
 
@@ -19,7 +21,7 @@ public interface LoginService {
 	 * @param userVo 前端傳入使用者資訊
 	 * @return
 	 */
-	UserDetailVo login(UserVo userVo);
+	UserDetailVo login(UserVo userVo) throws IOException;
 
 	/**
 	 * updateUserDetail 使用者資訊變更
