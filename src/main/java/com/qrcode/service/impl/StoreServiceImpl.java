@@ -1,41 +1,29 @@
 package com.qrcode.service.impl;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
-import java.util.Base64;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.qrcode.model.QrCodeResponse;
+import com.qrcode.model.ResponseResult;
 import com.qrcode.model.po.BusinessHour;
 import com.qrcode.model.po.Product;
 import com.qrcode.model.po.QrCode;
 import com.qrcode.model.po.Store;
 import com.qrcode.model.vo.BusinessHourVo;
 import com.qrcode.model.vo.ProductVo;
-import com.qrcode.model.vo.StoreAndProductVo;
 import com.qrcode.model.vo.StoreVo;
 import com.qrcode.model.vo.UserDetailVo;
 import com.qrcode.repository.BusinessHourRepository;
@@ -82,12 +70,12 @@ public class StoreServiceImpl implements StoreService {
 	 * @throws Exception
 	 */
 	@Override
-	public UserDetailVo createStore(StoreVo storeVo) throws Exception {
+	public ResponseResult<UserDetailVo> createStore(StoreVo storeVo) throws Exception {
 
 		Long storeSeq = storeVo.getStoreSeq();
 
 		if (!checkUserExists(storeSeq)) {
-			throw new Exception();
+			return ResponseResult.<UserDetailVo>builder().code(401).message("查無商店資訊").build();
 		}
 		// 儲存商店logo圖片
 		String logoPath = getLogoPath(storeVo);
@@ -98,18 +86,15 @@ public class StoreServiceImpl implements StoreService {
 				.storeName(storeVo.getStoreName()).description(storeVo.getDescription()).phone(storeVo.getPhone())
 				.email(storeVo.getEmail()).logo(logoPath).postCode(storeVo.getPostCode()).city(storeVo.getCity())
 				.district(storeVo.getDistrict()).streetAddress(storeVo.getStreetAddress())
-				.createTime(LocalDateTime.now()).updateTime(LocalDateTime.now()).build());
+				.createTime(LocalDateTime.now()).updateTime(LocalDateTime.now()).seats(seats).build());
 		// 前端json字串轉換成物件
 		List<BusinessHourVo> businessHourVoList = convertToBusinessHours(storeVo.getBusinessHours());
 		// 寫入營業時間資料表
 		businessHourRepository.saveAllAndFlush(businessHourVoList.stream().map(businessHourVo -> {
 
-			BusinessHour businessHour = new BusinessHour();
-
-			BeanUtils.copyProperties(businessHourVo, businessHour);
-
-			return BusinessHour.builder().storeSeq(savedStore.getSeq()).isOpen(businessHour.isOpen()).week(businessHour.getWeek())
-					.openTime(businessHour.getOpenTime()).closeTime(businessHour.getCloseTime()).build();
+			return BusinessHour.builder().storeSeq(savedStore.getSeq()).isOpen(businessHourVo.isOpen())
+					.week(businessHourVo.getWeek()).openTime(businessHourVo.getOpenTime())
+					.closeTime(businessHourVo.getCloseTime()).build();
 
 		}).toList());
 		// 依照座位號產生qrcode 第0個是店家所用
@@ -132,29 +117,36 @@ public class StoreServiceImpl implements StoreService {
 	 * @throws IOException
 	 */
 	@Override
-	public Store viewStore(Long seq) {
+	public ResponseResult<Store> viewStore(Long seq) {
 
-		return storeRepository.findById(seq).orElse(null);
+		Store result = storeRepository.findById(seq).orElse(null);
+
+		if (Objects.isNull(result)) {
+			ResponseResult.<Store>builder().code(401).message("查無商店資訊").build();
+		}
+
+		return ResponseResult.<Store>builder().code(200).message("檢視商店成功").data(result).build();
 	}
 
 	/**
 	 * updateStore 更新商店
 	 * 
-	 * @param storeVo 商店資訊
-	 * @throws IOException
+	 * @param storeVo
+	 * @throws Exception
 	 */
 	@Override
-	public void updateStore(StoreVo storeVo) throws IOException {
-		// 使用者的序號
+	public ResponseResult<UserDetailVo> updateStore(StoreVo storeVo) throws Exception {
+		// 商店序號
 		Long seq = storeVo.getSeq();
-		// 儲存商店logo圖片
-		String logoPath = getLogoPath(storeVo);
+		// 使用者的序號
+		Long userSeq = storeVo.getStoreSeq();
 
 		Optional<Store> storeOptional = storeRepository.findById(seq);
 
 		if (storeOptional.isPresent()) {
-
 			Store store = storeOptional.get();
+			// 原座位數
+			int seats = store.getSeats();
 			// 商店名稱
 			store.setStoreName(storeVo.getStoreName());
 			// 商店描述
@@ -163,46 +155,66 @@ public class StoreServiceImpl implements StoreService {
 			store.setPhone(storeVo.getPhone());
 			// 商店信箱
 			store.setEmail(storeVo.getEmail());
-			// 商店地址
-//			store.setAddress(storeVo.getAddress());
-//			// 商店營業時間
-//			store.setBusinessHours(storeVo.getBusinessHours());
+			// 郵遞區號
+			store.setPostCode(storeVo.getPostCode());
+			// 縣市
+			store.setCity(storeVo.getCity());
+			// 鄉鎮區域
+			store.setDistrict(storeVo.getDistrict());
+			// 詳細地址
+			store.setStreetAddress(storeVo.getStreetAddress());
+			// 商店座位
+			store.setSeats(storeVo.getSeats());
+			// 儲存商店logo圖片
+			String logoPath = getLogoPath(storeVo);
 			// 商店商標
 			store.setLogo(logoPath);
-			// 修改時間
-			store.setUpdateTime(LocalDateTime.now());
 
 			storeRepository.save(store);
+
+			List<BusinessHour> businessHourList = businessHourRepository.findByStoreSeq(seq);
+
+			if (!businessHourList.isEmpty()) {
+
+				try {
+					// 使用 deleteAllInBatch 替代 deleteAll，避免逐個檢查實體狀態
+					businessHourRepository.deleteAllInBatch(businessHourList);
+				} catch (Exception e) {
+					// 如果刪除失敗，重新獲取最新的營業時間記錄
+					businessHourList = businessHourRepository.findByStoreSeq(seq);
+					businessHourRepository.deleteAllInBatch(businessHourList);
+				}
+
+				// 前端json字串轉換成物件
+				List<BusinessHourVo> businessHourVoList = convertToBusinessHours(storeVo.getBusinessHours());
+				// 寫入營業時間資料表
+				businessHourRepository.saveAllAndFlush(businessHourVoList.stream().map(businessHourVo -> {
+
+					return BusinessHour.builder().storeSeq(seq).isOpen(businessHourVo.isOpen())
+							.week(businessHourVo.getWeek()).openTime(businessHourVo.getOpenTime())
+							.closeTime(businessHourVo.getCloseTime()).build();
+
+				}).toList());
+			}
+			// 依照座位號產生qrcode 第0個是店家所用
+			if (seats != storeVo.getSeats()) {
+
+				List<QrCode> qrCodeList = qrCodeRepository.findByStoreSeq(seq);
+
+				if (!qrCodeList.isEmpty()) {
+					qrCodeRepository.deleteAll(qrCodeList);
+				}
+				// 依照座位號產生qrcode 第0個是店家所用
+				for (int i = 0; i < storeVo.getSeats() + 1; i++) {
+					String qrcodePath = qrcodeUtil.generateQRCodeForStore(seq);
+
+					qrCodeRepository.saveAndFlush(QrCode.builder().storeSeq(seq).qrcode(qrcodePath).num(i)
+							.createTime(LocalDateTime.now()).updateTime(LocalDateTime.now()).build());
+				}
+			}
 		}
 
-	}
-
-	/**
-	 * getProductLogo 獲取商品圖片
-	 * 
-	 * @param seq 商品資訊序號
-	 * @return 商品圖片
-	 * @throws MalformedURLException
-	 */
-	@Override
-	public ResponseEntity<Resource> getProductLogo(Long seq) throws MalformedURLException {
-		// 以商店資訊序號取得商店資訊
-		Optional<Product> productOptional = productRepository.findById(seq);
-
-		if (productOptional.isEmpty() || productOptional.get().getPicture() == null) {
-
-			return ResponseEntity.notFound().build();
-
-		} else {
-
-			Product product = productOptional.get();
-
-			// 讀取文件
-			Path path = Paths.get(product.getPicture());
-			Resource resource = new UrlResource(path.toUri());
-
-			return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(resource);
-		}
+		return loginService.getUserDetailBySeq(userSeq);
 	}
 
 	/**
@@ -213,75 +225,90 @@ public class StoreServiceImpl implements StoreService {
 	 * @throws IOException
 	 */
 	@Override
-	public void createProduct(List<ProductVo> products, List<MultipartFile> files) throws IOException {
+	public ResponseResult<UserDetailVo> createProduct(ProductVo productVo) throws IOException {
+		// 商店序號
+		Long storeSeq = productVo.getProductSeq();
 
-		Map<String, MultipartFile> fileMap = new HashMap<>();
-		if (files != null) {
-			for (MultipartFile file : files) {
-				fileMap.put(file.getOriginalFilename(), file);
-			}
+		Optional<Store> storeOptional = storeRepository.findByStoreSeq(storeSeq);
+
+		if (storeOptional.isPresent()) {
+
+			Store store = storeOptional.get();
+			// 儲存商品圖片
+			String picturePath = getPicturePath(productVo);
+
+			productRepository.save(Product.builder().productSeq(store.getSeq()).productName(productVo.getProductName())
+					.productPrice(productVo.getProductPrice()).description(productVo.getDescription())
+					.spicy(productVo.isSpicy()).coriander(productVo.isCoriander()).vinegar(productVo.isVinegar())
+					.picture(picturePath).createTime(LocalDateTime.now()).updateTime(LocalDateTime.now()).build());
+
+			return loginService.getUserDetailBySeq(storeSeq);
 		}
 
-		for (ProductVo product : products) {
-			// 處理圖片上傳
-			String picturePath = null;
-
-			MultipartFile file = fileMap.get(product.getPictureFileName());
-
-			if (file != null) {
-
-				// 生成檔案名稱
-				String originalFilename = file.getOriginalFilename();
-				String fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
-				String newFileName = UUID.randomUUID().toString() + fileExtension;
-				// 儲存路徑
-				Path uploadPath = Paths.get("./uploads/pictures");
-				if (!Files.exists(uploadPath)) {
-					Files.createDirectories(uploadPath);
-				}
-				// 儲存檔案
-				Path filePath = uploadPath.resolve(newFileName);
-				Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-				picturePath = filePath.toString();
-
-			}
-
-			productRepository.save(Product.builder().productSeq(product.getStoreSeq()).productName(picturePath)
-					.productPrice(product.getProductPrice()).description(product.getDescription())
-					.sortOrder(product.getSortOrder()).spicy(product.isSpicy()).coriander(product.isCoriander())
-					.vinegar(product.isVinegar()).createTime(LocalDateTime.now()).updateTime(LocalDateTime.now())
-					.build());
-		}
+		return ResponseResult.<UserDetailVo>builder().code(401).message("創建商品失敗").build();
 
 	}
 
 	/**
-	 * viewProduct 檢視商品資訊
+	 * updateProduct 更新商品資訊
 	 * 
-	 * @param seq 商店序號
-	 * @return 商品資訊
+	 * @param product 商品
+	 * @return
+	 * @throws IOException
 	 */
 	@Override
-	public StoreAndProductVo viewProduct(Long seq) {
-		// 以商店資訊序號取得商店資訊
-		Optional<Store> storeOptional = storeRepository.findById(seq);
+	public ResponseResult<UserDetailVo> updateProduct(ProductVo productVo) throws IOException {
+		// 商店序號
+		Long storeSeq = productVo.getProductSeq();
+		// 商品序號
+		Long productSeq = productVo.getSeq();
 
-		if (storeOptional.isPresent()) {
-			// 商店資訊
-			Store store = storeOptional.get();
-			// 商店序號
-			Long storeSeq = store.getSeq();
-			// 以商品序號查詢商品資訊
-			List<Product> productList = productRepository.findByProductSeq(storeSeq);
+		Optional<Product> productOptional = productRepository.findById(productSeq);
 
-			StoreVo storeVo = new StoreVo();
-			BeanUtils.copyProperties(store, storeVo);
+		if (productOptional.isPresent()) {
 
-			return StoreAndProductVo.builder().storeVo(storeVo).productList(productList).build();
+			Product product = productOptional.get();
+			// 儲存商品圖片
+			String picturePath = getPicturePath(productVo);
+
+			product.setProductName(productVo.getProductName());
+
+			product.setProductPrice(productVo.getProductPrice());
+
+			product.setDescription(productVo.getDescription());
+
+			product.setSpicy(productVo.isSpicy());
+
+			product.setCoriander(productVo.isCoriander());
+
+			product.setVinegar(productVo.isVinegar());
+
+			product.setPicture(picturePath);
+
+			product.setUpdateTime(LocalDateTime.now());
+
+			productRepository.save(product);
+
+			Store store = storeRepository.findById(storeSeq).orElse(null);
+
+			return loginService.getUserDetailBySeq(store.getStoreSeq());
 		}
 
-		return null;
+		return ResponseResult.<UserDetailVo>builder().code(401).message("更新商品失敗").build();
+	}
+
+	/**
+	 * deleteProduct 刪除商品資訊
+	 * 
+	 * @param seq 商品序號
+	 * @return
+	 */
+	@Override
+	public ResponseResult<Void> deleteProduct(Long seq) {
+		// 商品序號
+		productRepository.deleteById(seq);
+
+		return ResponseResult.success(null);
 	}
 
 	/**
@@ -325,6 +352,37 @@ public class StoreServiceImpl implements StoreService {
 		}
 
 		return logoPath;
+	}
+
+	/**
+	 * getPicturePath 儲存商品圖片
+	 * 
+	 * @param productVo
+	 * @return
+	 * @throws IOException
+	 */
+	private String getPicturePath(ProductVo productVo) throws IOException {
+		// 處理圖片上傳
+		String resultPath = null;
+
+		if (Objects.nonNull(productVo.getPictureFile())) {
+			// 生成檔案名稱
+			String originalFilename = productVo.getPictureFile().getOriginalFilename();
+			String fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
+			String newFileName = UUID.randomUUID().toString() + fileExtension;
+			// 儲存路徑
+			Path picturesPath = Paths.get("./uploads/pictures");
+			if (!Files.exists(picturesPath)) {
+				Files.createDirectories(picturesPath);
+			}
+			// 儲存檔案
+			Path filePath = picturesPath.resolve(newFileName);
+			Files.copy(productVo.getPictureFile().getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+			resultPath = filePath.toString();
+		}
+
+		return resultPath;
 	}
 
 	private List<BusinessHourVo> convertToBusinessHours(String businessHoursJson) {

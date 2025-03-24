@@ -1,5 +1,7 @@
 package com.qrcode.model.vo;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -18,10 +20,15 @@ import lombok.NoArgsConstructor;
 public class ProductVo {
 
 	/**
+	 * seq 商品序號
+	 */
+	private Long seq;
+	
+	/**
 	 * storeSeq 商品序號 關聯store_t.seq
 	 */
 	@NotNull(message = "商店序號不能為空")
-	private Long storeSeq;
+	private Long productSeq;
 
 	/**
 	 * productName 商品名稱
@@ -42,11 +49,6 @@ public class ProductVo {
 	private String description;
 
 	/**
-	 * sortOrder 商品排序
-	 */
-	private Integer sortOrder;
-
-	/**
 	 * spicy 辣(可選)
 	 */
 	private boolean spicy;
@@ -62,8 +64,8 @@ public class ProductVo {
 	private boolean vinegar;
 
 	/**
-	 * pictureFileName 商品圖片名稱
+	 * pictureFileName 商品圖片
 	 */
-	private String pictureFileName;
+	private MultipartFile  pictureFile;
 
 }

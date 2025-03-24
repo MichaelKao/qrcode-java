@@ -34,14 +34,14 @@ public class QrcodeUtil {
 
 		Optional<QrCode> qrCodeOptional = qrCodeRepository.findFirstByStoreSeqOrderBySeqDesc(storeSeq);
 
-		Long seq = (long) 0;
+		int num = 0;
 
 		if (qrCodeOptional.isPresent()) {
-			// 取得最新seq
-			seq = qrCodeOptional.get().getSeq() + 1;
+			// 取得最新num
+			num = qrCodeOptional.get().getNum() + 1;
 		}
 		// qrcode網址
-		String qrCodeUrl = baseUrl + "/qrcode/provider/" + storeSeq + "/" + seq;
+		String qrCodeUrl = baseUrl + "/" + storeSeq + "/" + num;
 
 		try {
 			// 生成 QR Code
@@ -53,7 +53,7 @@ public class QrcodeUtil {
 				Files.createDirectories(path);
 			}
 			// 生成檔案名稱
-			String fileName = "store_" + seq + ".png";
+			String fileName = "store_" + num + ".png";
 			Path filePath = path.resolve(fileName);
 			// 儲存 QR Code 圖片
 			MatrixToImageWriter.writeToPath(bitMatrix, "PNG", filePath);

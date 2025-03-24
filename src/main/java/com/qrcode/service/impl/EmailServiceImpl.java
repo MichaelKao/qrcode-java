@@ -2,12 +2,14 @@ package com.qrcode.service.impl;
 
 import java.util.Optional;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import com.qrcode.model.ResponseResult;
 import com.qrcode.model.po.User;
 import com.qrcode.repository.UserRepository;
 import com.qrcode.service.EmailService;
@@ -39,7 +41,12 @@ public class EmailServiceImpl implements EmailService {
 	 * @param email 使用者電子信箱
 	 * @throws MessagingException
 	 */
-	public void verificationCode(String email) throws MessagingException {
+	public ResponseResult<String> verificationCode(String email) throws MessagingException {
+
+		if (StringUtils.isBlank(email)) {
+
+			return ResponseResult.<String>builder().code(401).message("郵箱不能為空").build();
+		}
 		// 生成6位數驗證碼
 		String code = verificationCode.generateCode();
 		// 內文
@@ -60,8 +67,12 @@ public class EmailServiceImpl implements EmailService {
 			mailSender.send(message);
 			// 保存驗證碼
 			verificationCode.saveCode(email, code);
+
+			return ResponseResult.<String>builder().code(200).message("發送郵件成功").build();
+
 		} catch (Exception e) {
-			throw new RuntimeException("發送郵件失敗: " + e.getMessage());
+
+			return ResponseResult.<String>builder().code(401).message("發送郵件失敗").build();
 		}
 	}
 
@@ -71,7 +82,7 @@ public class EmailServiceImpl implements EmailService {
 	 * @param email 電子信箱
 	 * @throws MessagingException
 	 */
-	public void sendPassword(String email) throws MessagingException {
+	public ResponseResult<String> sendPassword(String email) {
 
 		Optional<User> userOptional = userRepository.findByEmail(email);
 
@@ -84,17 +95,26 @@ public class EmailServiceImpl implements EmailService {
 			String content = String.format("您的密碼是: %s", password);
 
 			MimeMessage message = mailSender.createMimeMessage();
-			MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-			// 寄件人
-			helper.setFrom(fromEmail);
-			// 收件人
-			helper.setTo(email);
-			// 標題
-			helper.setSubject(SUBJECT);
-			// 內文
-			helper.setText(content);
-			mailSender.send(message);
+			MimeMessageHelper helper;
+			try {
+				helper = new MimeMessageHelper(message, true, "UTF-8");
+				// 寄件人
+				helper.setFrom(fromEmail);
+				// 收件人
+				helper.setTo(email);
+				// 標題
+				helper.setSubject(SUBJECT);
+				// 內文
+				helper.setText(content);
+				mailSender.send(message);
+			} catch (MessagingException e) {
+
+				return ResponseResult.<String>builder().code(401).message("寄送密碼失敗").build();
+			}
+
 		}
+
+		return ResponseResult.<String>builder().code(200).message("寄送密碼成功").build();
 
 	}
 

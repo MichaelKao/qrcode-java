@@ -55,12 +55,6 @@ public class Product {
 	 */
 	@Column(name = "description")
 	private String description;
-
-	/**
-	 * sortOrder 商品排序
-	 */
-	@Column(name = "sort_order")
-	private Integer sortOrder;
 	
 	/**
 	 * spicy 辣(可選)

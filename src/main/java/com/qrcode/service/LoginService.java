@@ -2,6 +2,7 @@ package com.qrcode.service;
 
 import java.io.IOException;
 
+import com.qrcode.model.ResponseResult;
 import com.qrcode.model.vo.UserDetailVo;
 import com.qrcode.model.vo.UserVo;
 
@@ -13,7 +14,7 @@ public interface LoginService {
 	 * @param userVo 前端傳入使用者資訊
 	 * @return
 	 */
-	UserDetailVo signIn(UserVo userVo);
+	ResponseResult<UserDetailVo> signIn(UserVo userVo);
 
 	/**
 	 * login 使用者登入
@@ -21,15 +22,15 @@ public interface LoginService {
 	 * @param userVo 前端傳入使用者資訊
 	 * @return
 	 */
-	UserDetailVo login(UserVo userVo) throws IOException;
+	ResponseResult<UserDetailVo> login(UserVo userVo) throws IOException;
 
 	/**
-	 * updateUserDetail 使用者資訊變更
+	 * getUserDetailBySeq 用使用者序號查詢使用者資訊
 	 * 
-	 * @param userVo 前端傳入使用者資訊
+	 * @param seq 使用者序號
+	 * @return 使用者資訊
+	 * @throws Exception
 	 */
-	boolean updateUserDetail(UserVo userVo);
-	
-	UserDetailVo getUserDetailBySeq(Long seq)  throws Exception;
+	ResponseResult<UserDetailVo> getUserDetailBySeq(Long seq) throws IOException;
 
 }

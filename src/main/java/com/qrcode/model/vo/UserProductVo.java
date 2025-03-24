@@ -42,11 +42,6 @@ public class UserProductVo {
 	private String description;
 
 	/**
-	 * sortOrder 商品排序
-	 */
-	private Integer sortOrder;
-
-	/**
 	 * spicy 辣(可選)
 	 */
 	private boolean spicy;

@@ -7,6 +7,7 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
@@ -15,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.qrcode.model.ResponseResult;
 import com.qrcode.model.po.Store;
 import com.qrcode.model.po.User;
 import com.qrcode.model.vo.BusinessHourVo;
@@ -61,35 +63,40 @@ public class LoginServiceImpl implements LoginService {
 	 * @return
 	 */
 	@Override
-	public UserDetailVo signIn(UserVo userVo) {
+	public ResponseResult<UserDetailVo> signIn(UserVo userVo) {
 		// 帳號
 		String account = userVo.getAccount();
 		// 電子信箱
 		String email = userVo.getEmail();
+		// 密碼
+		String password = userVo.getPassword();
 		// 驗證碼
 		String code = userVo.getCode();
-		// 以帳號查詢使用者資訊
-		Optional<User> userOptional = userRepository.findByAccount(account);
-		// 檢查使用者是否存在
-		if (userOptional.isPresent()
-				|| verificationCodeUtil.verifyCode(VerificationVo.builder().email(email).code(code).build())) {
+		// 檢查帳號是否已存在
+		if (userRepository.findByAccount(account).isPresent()) {
 
-			return null;
-		} else {
-
-			User user = new User();
-			// 前端傳入vo轉成資料庫所需po
-			BeanUtils.copyProperties(userVo, user);
-			// 建立時間
-			user.setCreateTime(LocalDateTime.now());
-			// 修改時間
-			user.setUpdateTime(LocalDateTime.now());
-			// 資料不存在則新增
-			user = userRepository.saveAndFlush(user);
-
-			return UserDetailVo.builder().seq(user.getSeq()).account(account).password(code).email(email)
-					.userStoreVo(null).build();
+			return ResponseResult.<UserDetailVo>builder().code(401).message("帳號重複").build();
 		}
+		// 檢查驗證碼是否有效
+		if (!verificationCodeUtil.verifyCode(VerificationVo.builder().email(email).code(code).build())) {
+
+			return ResponseResult.<UserDetailVo>builder().code(401).message("驗證碼錯誤").build();
+		}
+
+		User user = new User();
+		// 前端傳入vo轉成資料庫所需po
+		BeanUtils.copyProperties(userVo, user);
+		// 建立時間
+		user.setCreateTime(LocalDateTime.now());
+		// 修改時間
+		user.setUpdateTime(LocalDateTime.now());
+		// 資料不存在則新增
+		user = userRepository.saveAndFlush(user);
+
+		UserDetailVo userDetailVo = UserDetailVo.builder().seq(user.getSeq()).account(account).password(password)
+				.email(email).userStoreVo(null).build();
+
+		return ResponseResult.<UserDetailVo>builder().code(200).message("註冊成功").data(userDetailVo).build();
 	}
 
 	/**
@@ -100,7 +107,7 @@ public class LoginServiceImpl implements LoginService {
 	 * @throws IOException
 	 */
 	@Override
-	public UserDetailVo login(UserVo userVo) throws IOException {
+	public ResponseResult<UserDetailVo> login(UserVo userVo) throws IOException {
 		// 帳號
 		String account = userVo.getAccount();
 		// 密碼
@@ -148,7 +155,20 @@ public class LoginServiceImpl implements LoginService {
 				List<UserProductVo> userProductVoList = productRepository.findByProductSeq(store.getSeq()).stream()
 						.map(product -> {
 							UserProductVo productVo = new UserProductVo();
+
+							String base64Product = "";
+
+							try {
+								// 把檔案轉換成base64
+								base64Product = convertBase64(product.getPicture());
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
+
 							BeanUtils.copyProperties(product, productVo);
+
+							productVo.setPicture(base64Product);
+
 							return productVo;
 						}).toList();
 				// 取得店家qrcode清單
@@ -177,54 +197,31 @@ public class LoginServiceImpl implements LoginService {
 
 				result.setUserStoreVo(userStoreVo);
 
-				return result;
-
-			} else {
-				return result;
 			}
+
+			return ResponseResult.<UserDetailVo>builder().code(200).message("登入成功").data(result).build();
 		}
 
-		return null;
-
+		return ResponseResult.<UserDetailVo>builder().code(401).message("帳號密碼錯誤").build();
 	}
 
 	/**
-	 * updateUserDetail 使用者資訊變更
+	 * getUserDetailBySeq 用使用者序號查詢使用者資訊
 	 * 
-	 * @param userVo 前端傳入使用者資訊
+	 * @param seq 使用者序號
+	 * @return 使用者資訊
+	 * @throws IOException
+	 * @throws Exception
 	 */
 	@Override
-	public boolean updateUserDetail(UserVo userVo) {
-		// 帳號
-		String account = userVo.getAccount();
-		// 以帳號查詢使用者資訊
-		Optional<User> userOptional = userRepository.findByAccount(account);
-		// 檢查使用者是否存在
-		if (userOptional.isPresent()) {
+	public ResponseResult<UserDetailVo> getUserDetailBySeq(Long seq) throws IOException {
 
-			User user = userOptional.get();
-			// 密碼
-			String password = userVo.getPassword();
-			// 電子信箱
-			String email = userVo.getEmail();
-			// 更新密碼
-			user.setPassword(password);
-			// 更新電子信箱
-			user.setEmail(email);
-			// 更新
-			userRepository.saveAndFlush(user);
+		User user = userRepository.findById(seq).orElse(null);
 
-			return true;
-		} else {
-			return false;
+		if (Objects.isNull(user)) {
+
+			return ResponseResult.<UserDetailVo>builder().code(401).message("查無使用者資訊").build();
 		}
-
-	}
-
-	@Override
-	public UserDetailVo getUserDetailBySeq(Long seq) throws Exception {
-
-		User user = userRepository.findById(seq).orElseThrow(() -> new Exception());
 
 		UserDetailVo result = new UserDetailVo();
 		// 使用者序號
@@ -260,7 +257,20 @@ public class LoginServiceImpl implements LoginService {
 			List<UserProductVo> userProductVoList = productRepository.findByProductSeq(store.getSeq()).stream()
 					.map(product -> {
 						UserProductVo productVo = new UserProductVo();
+
+						String base64Product = "";
+
+						try {
+							// 把檔案轉換成base64
+							base64Product = convertBase64(product.getPicture());
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+
 						BeanUtils.copyProperties(product, productVo);
+
+						productVo.setPicture(base64Product);
+
 						return productVo;
 					}).toList();
 			// 取得店家qrcode清單
@@ -289,11 +299,12 @@ public class LoginServiceImpl implements LoginService {
 
 			result.setUserStoreVo(userStoreVo);
 
-			return result;
+			return ResponseResult.<UserDetailVo>builder().code(200).message("登入成功").data(result).build();
 
 		}
 
-		return null;
+		return ResponseResult.<UserDetailVo>builder().code(401).message("登入失敗").build();
+
 	}
 
 	/**
@@ -312,8 +323,11 @@ public class LoginServiceImpl implements LoginService {
 		Path path = Paths.get(filePath);
 
 		byte[] imageBytes;
-
-		imageBytes = Files.readAllBytes(path);
+		try {
+			imageBytes = Files.readAllBytes(path);
+		} catch (Exception e) {
+			return "";
+		}
 
 		return Base64.getEncoder().encodeToString(imageBytes);
 

@@ -57,8 +57,7 @@ public class VerificationCodeUtil {
 		// 驗證碼
 		String code = request.getCode();
 		// 以電子信箱查詢驗證碼資訊
-		List<VerificationCode> verificationCodeList = verificationCodeRepository
-				.findByEmailOrderByCreateTimeDesc(email);
+		List<VerificationCode> verificationCodeList = verificationCodeRepository.findByEmailOrderByCreateTimeDesc(email);
 		// 當無資料時,報錯
 		if (verificationCodeList.isEmpty()) {
 			return false;

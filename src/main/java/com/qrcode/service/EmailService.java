@@ -1,5 +1,7 @@
 package com.qrcode.service;
 
+import com.qrcode.model.ResponseResult;
+
 import jakarta.mail.MessagingException;
 
 public interface EmailService {
@@ -10,7 +12,7 @@ public interface EmailService {
 	 * @param email 使用者電子信箱
 	 * @throws MessagingException
 	 */
-	void verificationCode(String email) throws MessagingException;
+	ResponseResult<String> verificationCode(String email) throws MessagingException;
 
 	/**
 	 * sendPassword 寄送密碼
@@ -18,6 +20,6 @@ public interface EmailService {
 	 * @param email 電子信箱
 	 * @throws MessagingException
 	 */
-	void sendPassword(String email) throws MessagingException;
+	ResponseResult<String> sendPassword(String email);
 
 }

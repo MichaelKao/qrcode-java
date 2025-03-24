@@ -1,7 +1,6 @@
 package com.qrcode.controller;
 
 import java.io.IOException;
-import java.util.Objects;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -9,7 +8,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -46,14 +44,8 @@ public class LoginController {
 	@ApiResponse(responseCode = "200", description = "註冊成功")
 	@ApiResponse(responseCode = "401", description = "註冊失敗")
 	public ResponseEntity<ResponseResult<UserDetailVo>> signIn(@RequestBody @Valid UserVo userVo) {
-
-		UserDetailVo result = loginService.signIn(userVo);
-
-		if (Objects.isNull(result)) {
-			return ResponseEntity.ok(ResponseResult.error(401, "帳號重複"));
-		}
-
-		return ResponseEntity.ok(ResponseResult.success(loginService.signIn(userVo)));
+		// 使用者註冊
+		return ResponseEntity.ok(loginService.signIn(userVo));
 
 	}
 
@@ -69,34 +61,8 @@ public class LoginController {
 	@ApiResponse(responseCode = "200", description = "登入成功")
 	@ApiResponse(responseCode = "401", description = "登入失敗")
 	public ResponseEntity<ResponseResult<UserDetailVo>> login(@RequestBody UserVo userVo) throws IOException {
-
-		UserDetailVo user = loginService.login(userVo);
-
-		if (Objects.isNull(user)) {
-			return ResponseEntity.ok(ResponseResult.error(401, "登入失敗"));
-		}
-
-		return ResponseEntity.ok(ResponseResult.success(user));
-
-	}
-
-	/**
-	 * updateUserDetail 使用者資訊變更
-	 * 
-	 * @param userVo 前端傳入使用者資訊
-	 * @return 變更結果
-	 */
-	@PutMapping(value = "/updateUserDetail", produces = MediaType.APPLICATION_JSON_VALUE)
-	@Operation(summary = "變更email", description = "變更email")
-	@ApiResponse(responseCode = "200", description = "變更成功")
-	@ApiResponse(responseCode = "401", description = "變更失敗")
-	public ResponseEntity<ResponseResult<String>> updateUserDetail(@RequestBody UserVo userVo) {
-
-		if (!loginService.updateUserDetail(userVo)) {
-			return ResponseEntity.ok(ResponseResult.error(401, "變更失敗"));
-		}
-
-		return ResponseEntity.ok(ResponseResult.success("變更成功"));
+		// 使用者登入
+		return ResponseEntity.ok(loginService.login(userVo));
 
 	}
 
@@ -110,11 +76,9 @@ public class LoginController {
 	@GetMapping(value = "/forgetPassword/{email}", produces = MediaType.APPLICATION_JSON_VALUE)
 	@Operation(summary = "忘記密碼", description = "忘記密碼")
 	@ApiResponse(responseCode = "200", description = "OK")
-	public ResponseEntity<ResponseResult<String>> forgetPassword(@PathVariable String email) throws MessagingException {
-
-		emailService.sendPassword(email);
-
-		return ResponseEntity.ok(ResponseResult.success("驗證碼以寄送至信箱"));
+	public ResponseEntity<ResponseResult<String>> forgetPassword(@PathVariable String email) {
+		// 寄送密碼
+		return ResponseEntity.ok(emailService.sendPassword(email));
 
 	}
 
